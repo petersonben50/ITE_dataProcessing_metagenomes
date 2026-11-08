@@ -31,5 +31,8 @@ set-resources:
 # Enable Apptainer container usage for rules that specify a 'container:' directive.
 use-apptainer: true
 
-# Set up the binding for the PLBS
-apptainer-args: "--bind /home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs --bind /home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/code/MGassembly/MGassembly_workshop:/home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/code/MGassembly/MGassembly_workshop:rw"
+# Set up the binding for the PLBS.
+# NOTE: run_workflow.sh overrides this on the command line to also bind the
+# workshop directory (processed_data_root) at its absolute host path. This
+# default is only used if snakemake is invoked directly with this profile.
+apptainer-args: "--bind /home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs"

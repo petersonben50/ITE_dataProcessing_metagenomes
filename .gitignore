@@ -1,0 +1,12 @@
+# Processed/intermediate data (processed_data_root in config.yaml)
+data/
+
+# Snakemake runtime state
+.snakemake/
+
+# Slurm job logs from run_workflow.sh
+snakemake_master_*.out
+snakemake_master_*.err
+
+# macOS
+.DS_Store

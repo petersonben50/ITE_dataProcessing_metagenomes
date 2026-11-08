@@ -9,18 +9,20 @@
 # --- Sample Definitions ---
 # List of metagenome IDs to process.
 metagenomes:
-  - "MG_ER43_20240804_16m_0001"
-  - "MG_ER43_20240804_16m_0002"
-  - "MG_ERLPB_20240809_34m_0003"
-  - "MG_ERLPB_20240809_34m_0004"
+  - "ASBP005A"
+  - "ASBP005B"
+  - "ASBP005C"
+  - "ASBP005D"
+  - "ASBP005E"
 
 # Directory for raw sequencing reads
-raw_reads_dir: "/home/uwm/petersob/Data/metagenomes/GL"
+raw_reads_dir: "/home/uwm/petersob/Data/metagenomes/ITE"
 
-# Base directory where all processed data will be stored
-processed_data_root: "MGassembly_workshop"
+# Base directory where all processed data will be stored.
+# Relative paths are interpreted from the workflow directory (code/MGassembly).
+processed_data_root: "/home/uwm/petersob/Data/petersob/ITE_dataProcessing_metagenomes/data/MGassembly_workshop"
 # Base directory where all final data will be stored
-final_data_root: "/home/uwm/petersob/Data/petersob/LE_PRE/MGassembly_final"
+final_data_root: "/home/uwm/petersob/Data/petersob/ITE/MGassembly_final"
 
 
 # Apptainer container names
