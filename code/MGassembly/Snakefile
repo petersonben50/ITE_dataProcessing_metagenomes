@@ -1,0 +1,149 @@
+#==============================================================================#
+#                       Snakemake Workflow (Snakefile)                         #
+#==============================================================================#
+
+import os
+
+# --- 1. Configuration Loading ---
+# Load parameters from config.yaml
+configfile: "config.yaml"
+
+# Define common variables from config for easier access
+METAGENOMES = config["metagenomes"]
+RAW_READS_DIR = config["raw_reads_dir"]
+PROCESSED_DATA_ROOT = config["processed_data_root"]
+FINAL_DATA_ROOT = config["final_data_root"]
+PLBS_LOCATION = config["plbs_location"]
+
+# Fastp container and wrapper script paths
+FASTP_CONTAINER = config["fastp_container"]
+FASTP_WRAPPER_SCRIPT = os.path.join(PLBS_LOCATION, config["fastp_wrapper_script_name"])
+
+# SPADes container and wrapper script paths
+SPADES_CONTAINER = config["spades_container"]
+SPADES_KMERS = config["spades_kmers"]
+SPADES_WRAPPER_SCRIPT = os.path.join(PLBS_LOCATION, config["spades_wrapper_script_name"])
+
+# This check will fail the workflow early if the wrapper script path is invalid.
+if not os.path.exists(FASTP_WRAPPER_SCRIPT):
+    raise FileNotFoundError(f"Error: fastp wrapper script not found at {FASTP_WRAPPER_SCRIPT}. "
+                            "Please ensure 'plbs_location' in config.yaml is correct "
+                            "and the script exists at that path.")
+if not os.path.exists(SPADES_WRAPPER_SCRIPT):
+    raise FileNotFoundError(f"Error: spades wrapper script not found at {SPADES_WRAPPER_SCRIPT}. "
+                            "Please ensure 'plbs_location' in config.yaml is correct "
+                            "and the script exists at that path.")
+
+
+
+# --- 2. Define Output Directories and Naming Conventions ---
+FASTP_FINAL_OUTPUT_DIR = os.path.join(PROCESSED_DATA_ROOT, "fastp_filtering", "{metagenome_id}")
+SPADES_BASE_OUTPUT_DIR = os.path.join(PROCESSED_DATA_ROOT, "spades_assembly", "{metagenome_id}")
+# A marker file inside the spades output dir to signify completion.
+SPADES_FINAL_CONTIGS = os.path.join(SPADES_BASE_OUTPUT_DIR, "{metagenome_id}_spades_output", "contigs.fasta")
+
+
+# --- 3. Rule All (Define the final targets of the workflow) ---
+# We want to ensure all fastp JSON reports are generated for all metagenomes.
+# This will be the main output to check for completion of this stage.
+rule all:
+    input:
+        expand(os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.json"), metagenome_id=METAGENOMES),
+        expand(SPADES_FINAL_CONTIGS, metagenome_id=METAGENOMES)
+
+
+# --- 4. Rule for fastp QC and Trimming ---
+# This rule defines how to process a single metagenome sample using the wrapper script.
+rule fastp_qc_trim:
+    name: "fastp_qc_trim"
+
+    input:
+        read1 = os.path.join(RAW_READS_DIR, "{metagenome_id}_R1.fastq.gz"),
+        read2 = os.path.join(RAW_READS_DIR, "{metagenome_id}_R2.fastq.gz"),
+        fastp_container = FASTP_CONTAINER,
+        fastp_wrapper_script = FASTP_WRAPPER_SCRIPT
+
+    output:
+        trimmed_r1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_trimmed.fastq.gz"),
+        trimmed_r2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_trimmed.fastq.gz"),
+        unpaired1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_unpaired.fastq.gz"),
+        unpaired2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_unpaired.fastq.gz"),
+        merged = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_merged.fastq.gz"),
+        failed = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_failed.fastq.gz"),
+        fastp_json = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.json"),
+        fastp_html = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.html")
+
+    resources:
+        cpus_per_task = 7
+
+    log:
+        os.path.join(FASTP_FINAL_OUTPUT_DIR, "logs", "{metagenome_id}_fastp.log")
+
+    # The shell command now calls the external wrapper script
+    shell:
+        """
+        {input.fastp_wrapper_script} \\
+            --fastp_container "{input.fastp_container}" \\
+            --metagenome_id "{wildcards.metagenome_id}" \\
+            --num_threads "{resources.cpus_per_task}" \\
+            --input_read1 "{input.read1}" \\
+            --input_read2 "{input.read2}" \\
+            --output_trimmed_r1 "{output.trimmed_r1}" \\
+            --output_trimmed_r2 "{output.trimmed_r2}" \\
+            --output_unpaired1 "{output.unpaired1}" \\
+            --output_unpaired2 "{output.unpaired2}" \\
+            --output_merged "{output.merged}" \\
+            --output_failed "{output.failed}" \\
+            --output_json "{output.fastp_json}" \\
+            --output_html "{output.fastp_html}"
+        """
+
+
+# --- 5. Rule for metaSPAdes Assembly ---
+# This rule defines how to perform metagenome assembly using the SPAdes wrapper script.
+rule run_metaspades_assembly:
+    name: "metaspades_assembly"
+    
+    input:
+        spades_wrapper_script = SPADES_WRAPPER_SCRIPT,
+        # Inputs are the cleaned reads from the fastp_qc_trim rule
+        trimmed_r1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_trimmed.fastq.gz"),
+        trimmed_r2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_trimmed.fastq.gz"),
+        unpaired1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_unpaired.fastq.gz"),
+        unpaired2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_unpaired.fastq.gz"),
+        merged = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_merged.fastq.gz")
+
+    output:
+        assembly_output_dir = directory(os.path.join(SPADES_BASE_OUTPUT_DIR, "{metagenome_id}_spades_output")),
+        contigs = SPADES_FINAL_CONTIGS
+    
+    resources:
+        cpus_per_task = 22,
+        mem = "245G",
+        mem_to_use = 240,
+        slurm_partition = "256g",
+        runtime = 28800
+    
+    log:
+        os.path.join(SPADES_BASE_OUTPUT_DIR, "logs", "{metagenome_id}_spades.log")
+
+    container: SPADES_CONTAINER
+
+    params:
+        assembly_name = "{metagenome_id}",
+        kmers = config.get("spades_kmers", "21,33,55,77,99,127"),
+        internal_spades_script_path = "/opt/plbs/executables/MGassembly/assembleReads_by_metaspades.py"
+
+    shell:
+        """
+        {params.internal_spades_script_path} \\
+            --r1 {input.trimmed_r1} \\
+            --r2 {input.trimmed_r2} \\
+            --single {input.unpaired1} {input.unpaired2} \\
+            --merged {input.merged} \\
+            --output-dir {output.assembly_output_dir} \\
+            --assembly-name {params.assembly_name} \\
+            --threads {resources.cpus_per_task} \\
+            --memory {resources.mem_to_use} \\
+            --kmers {params.kmers}
+        """

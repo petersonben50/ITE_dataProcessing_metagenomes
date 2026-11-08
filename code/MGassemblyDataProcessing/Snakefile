@@ -1,0 +1,83 @@
+#==============================================================================#
+#                       Snakemake Workflow (Snakefile)                         #
+#==============================================================================#
+
+import os
+
+# --- 1. Configuration Loading ---
+# Load parameters from config.yaml
+configfile: "config.yaml"
+
+# Define common variables from config for easier access
+METAGENOMES = config["metagenomes"]
+RAW_READS_DIR = config["raw_reads_dir"]
+PROCESSED_DATA_ROOT = config["processed_data_root"]
+FINAL_DATA_ROOT = config["final_data_root"]
+PLBS_LOCATION = config["plbs_location"]
+
+# Fastp container and wrapper script paths
+FASTP_CONTAINER = config["fastp_container"]
+FASTP_WRAPPER_SCRIPT = os.path.join(PLBS_LOCATION, config["fastp_wrapper_script_name"])
+
+# This check will fail the workflow early if the wrapper script path is invalid.
+if not os.path.exists(FASTP_WRAPPER_SCRIPT):
+    raise FileNotFoundError(f"Error: fastp wrapper script not found at {FASTP_WRAPPER_SCRIPT}. "
+                            "Please ensure 'plbs_location' in config.yaml is correct "
+                            "and the script exists at that path.")
+
+
+# --- 2. Define Output Directories and Naming Conventions ---
+FASTP_FINAL_OUTPUT_DIR = os.path.join(PROCESSED_DATA_ROOT, "fastp_filtering", "{metagenome_id}")
+
+
+# --- 3. Rule All (Define the final targets of the workflow) ---
+# We want to ensure all fastp JSON reports are generated for all metagenomes.
+# This will be the main output to check for completion of this stage.
+rule all:
+    input:
+        expand(os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.json"), metagenome_id=METAGENOMES),
+
+
+# --- 4. Rule for fastp QC and Trimming ---
+# This rule defines how to process a single metagenome sample using the wrapper script.
+rule fastp_qc_trim:
+    name: "fastp_qc_trim"
+
+    input:
+        read1 = os.path.join(RAW_READS_DIR, "{metagenome_id}_R1.fastq.gz"),
+        read2 = os.path.join(RAW_READS_DIR, "{metagenome_id}_R2.fastq.gz"),
+        fastp_container = FASTP_CONTAINER,
+        fastp_wrapper_script = FASTP_WRAPPER_SCRIPT
+
+    output:
+        trimmed_r1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_trimmed.fastq.gz"),
+        trimmed_r2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_trimmed.fastq.gz"),
+        unpaired1 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R1_unpaired.fastq.gz"),
+        unpaired2 = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_R2_unpaired.fastq.gz"),
+        failed = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_failed.fastq.gz"),
+        fastp_json = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.json"),
+        fastp_html = os.path.join(FASTP_FINAL_OUTPUT_DIR, "{metagenome_id}_fastp_report.html")
+
+    resources:
+        cpus_per_task = 7
+
+    log:
+        os.path.join(FASTP_FINAL_OUTPUT_DIR, "logs", "{metagenome_id}_fastp.log")
+
+    # The shell command now calls the external wrapper script
+    shell:
+        """
+        {input.fastp_wrapper_script} \\
+            --fastp_container "{input.fastp_container}" \\
+            --metagenome_id "{wildcards.metagenome_id}" \\
+            --num_threads "{resources.cpus_per_task}" \\
+            --input_read1 "{input.read1}" \\
+            --input_read2 "{input.read2}" \\
+            --output_trimmed_r1 "{output.trimmed_r1}" \\
+            --output_trimmed_r2 "{output.trimmed_r2}" \\
+            --output_unpaired1 "{output.unpaired1}" \\
+            --output_unpaired2 "{output.unpaired2}" \\
+            --output_failed "{output.failed}" \\
+            --output_json "{output.fastp_json}" \\
+            --output_html "{output.fastp_html}"
+        """

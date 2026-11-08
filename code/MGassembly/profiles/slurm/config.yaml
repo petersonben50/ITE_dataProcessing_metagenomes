@@ -1,0 +1,35 @@
+# profiles/slurm/config.yaml
+
+# Set up the working directory paths
+#containers_location: "/home/uwm/petersob/Data/containers/"
+#plbs_location: "/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
+
+# Maximum number of jobs to submit concurrently to the cluster.
+jobs: 12
+
+# Settings for slurm snakemake plugin catalog
+executor: slurm
+default-resources:
+  nodes: 1
+  tasks: 1
+  cpus_per_task: 4
+  mem: 32G
+  slurm_partition: batch
+  runtime: 480
+set-resources:
+  fastp_qc_trim:
+    cpus_per_task: 8
+    mem: 32G
+    slurm_partition: batch
+    runtime: 480
+  run_metaspades_assembly:
+    cpus_per_task: 22
+    mem: 240G
+    slurm_partition: 256g
+    runtime: 28800
+
+# Enable Apptainer container usage for rules that specify a 'container:' directive.
+use-apptainer: true
+
+# Set up the binding for the PLBS
+apptainer-args: "--bind /home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs --bind /home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/code/MGassembly/MGassembly_workshop:/home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/code/MGassembly/MGassembly_workshop:rw"
