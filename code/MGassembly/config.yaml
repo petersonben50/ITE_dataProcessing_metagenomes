@@ -20,7 +20,7 @@ raw_reads_dir: "/home/uwm/petersob/Data/metagenomes/ITE"
 
 # Base directory where all processed data will be stored.
 # Relative paths are interpreted from the workflow directory (code/MGassembly).
-processed_data_root: "/home/uwm/petersob/Data/petersob/ITE_dataProcessing_metagenomes/data/MGassembly_workshop"
+processed_data_root: "/home/uwm/petersob/Data/petersob/ITE/ITE_dataProcessing_metagenomes/data/MGassembly_workshop"
 # Base directory where all final data will be stored
 final_data_root: "/home/uwm/petersob/Data/petersob/ITE/MGassembly_final"
 

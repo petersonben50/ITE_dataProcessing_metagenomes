@@ -9,6 +9,11 @@ jobs: 12
 
 # Settings for slurm snakemake plugin catalog
 executor: slurm
+# Query job status via squeue (talks to slurmctld) rather than sacct, which
+# needs the slurmdbd accounting database and is unreachable from compute
+# nodes on this cluster. Requires MinJobAge (300 s here) to exceed the
+# plugin's polling interval so finished jobs remain visible.
+slurm-status-command: squeue
 default-resources:
   nodes: 1
   tasks: 1
