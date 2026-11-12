@@ -131,11 +131,13 @@ rule run_metaspades_assembly:
 
     params:
         assembly_name = "{metagenome_id}",
+        spades_base_dir = SPADES_BASE_OUTPUT_DIR,
         kmers = config.get("spades_kmers", "21,33,55,77,99,127"),
         internal_spades_script_path = "/opt/plbs/executables/MGassembly/assembleReads_by_metaspades.py"
 
     shell:
         """
+        mkdir -p {params.spades_base_dir}
         {params.internal_spades_script_path} \\
             --r1 {input.trimmed_r1} \\
             --r2 {input.trimmed_r2} \\

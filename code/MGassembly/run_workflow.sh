@@ -37,6 +37,13 @@ echo "Snakemake version: $(snakemake --version)"
 # config.yaml) is bound at its absolute host path so containerized rules can
 # write to it. A relative processed_data_root is resolved against the workflow
 # directory, matching how Snakemake interprets it.
+#
+# The directory is bound at its *logical* path (as written in config.yaml,
+# symlinks preserved) because that is the path Snakemake substitutes into the
+# rule's shell command. /home/uwm/petersob/Data is a symlink to /tank/..., so
+# binding only the symlink-resolved path leaves /home/uwm/... missing inside
+# the container ("mkdir: cannot create directory '/home/uwm': Read-only file
+# system"). The physical path is bound too, in case a tool resolves symlinks.
 PLBS_DIR="/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
 PROCESSED_DATA_ROOT=$(sed -nE 's/^processed_data_root:[[:space:]]*"?([^"#]*[^"#[:space:]])"?.*$/\1/p' config.yaml)
 if [[ -z "$PROCESSED_DATA_ROOT" ]]; then
@@ -44,14 +51,20 @@ if [[ -z "$PROCESSED_DATA_ROOT" ]]; then
     exit 1
 fi
 mkdir -p "$PROCESSED_DATA_ROOT"
-WORKSHOP_DIR=$(cd "$PROCESSED_DATA_ROOT" && pwd -P)
+WORKSHOP_DIR=$(cd "$PROCESSED_DATA_ROOT" && pwd -L)
+WORKSHOP_DIR_PHYS=$(cd "$PROCESSED_DATA_ROOT" && pwd -P)
 echo "Processed data directory: $WORKSHOP_DIR"
+APPTAINER_BINDS="--bind ${PLBS_DIR}:/opt/plbs --bind ${WORKSHOP_DIR}:${WORKSHOP_DIR}:rw"
+if [[ "$WORKSHOP_DIR_PHYS" != "$WORKSHOP_DIR" ]]; then
+    echo "Processed data directory (physical): $WORKSHOP_DIR_PHYS"
+    APPTAINER_BINDS+=" --bind ${WORKSHOP_DIR_PHYS}:${WORKSHOP_DIR_PHYS}:rw"
+fi
 
 # Run Snakemake with your profile
 # The --profile slurm ensures that individual rules are submitted to Slurm
 # by the Snakemake master process running on this batch node.
 # --apptainer-args on the command line overrides the value in the profile.
 snakemake --workflow-profile profiles/slurm --keep-going --rerun-incomplete \
-    --apptainer-args "--bind ${PLBS_DIR}:/opt/plbs --bind ${WORKSHOP_DIR}:${WORKSHOP_DIR}:rw"
+    --apptainer-args "${APPTAINER_BINDS}"
 
 echo "Snakemake workflow finished."
