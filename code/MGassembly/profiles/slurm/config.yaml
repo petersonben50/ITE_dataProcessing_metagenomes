@@ -1,8 +1,8 @@
 # profiles/slurm/config.yaml
 
 # Set up the working directory paths
-#containers_location: "/home/uwm/petersob/Data/containers/"
-#plbs_location: "/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
+#containers_location: "/tank/data/LS/petersob/containers/"
+#plbs_location: "/tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold"
 
 # Maximum number of jobs to submit concurrently to the cluster.
 jobs: 12
@@ -40,4 +40,4 @@ use-apptainer: true
 # NOTE: run_workflow.sh overrides this on the command line to also bind the
 # workshop directory (processed_data_root) at its absolute host path. This
 # default is only used if snakemake is invoked directly with this profile.
-apptainer-args: "--bind /home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs"
+apptainer-args: "--bind /tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs"

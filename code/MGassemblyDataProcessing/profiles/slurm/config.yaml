@@ -1,8 +1,8 @@
 # profiles/slurm/config.yaml
 
 # Set up the working directory paths
-#containers_location: "/home/uwm/petersob/Data/containers/"
-#plbs_location: "/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
+#containers_location: "/tank/data/LS/petersob/containers/"
+#plbs_location: "/tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold"
 
 # Maximum number of jobs to submit concurrently to the cluster.
 jobs: 12
@@ -27,4 +27,4 @@ set-resources:
 use-apptainer: true
 
 # Set up the binding for the PLBS
-apptainer-args: "--bind /home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs --bind /home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/data/MGassemblyDataProcessing_workshop:/home/uwm/petersob/Data/petersob/dataProcessing_GLWCHg_LE_PRE_MG/data/MGassemblyDataProcessing_workshop:rw"
+apptainer-args: "--bind /tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold:/opt/plbs --bind /tank/data/LS/petersob/petersob/dataProcessing_GLWCHg_LE_PRE_MG/data/MGassemblyDataProcessing_workshop:/tank/data/LS/petersob/petersob/dataProcessing_GLWCHg_LE_PRE_MG/data/MGassemblyDataProcessing_workshop:rw"

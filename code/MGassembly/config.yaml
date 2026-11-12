@@ -16,21 +16,21 @@ metagenomes:
   - "ASBP005E"
 
 # Directory for raw sequencing reads
-raw_reads_dir: "/home/uwm/petersob/Data/metagenomes/ITE"
+raw_reads_dir: "/tank/data/LS/petersob/metagenomes/ITE"
 
 # Base directory where all processed data will be stored.
 # Relative paths are interpreted from the workflow directory (code/MGassembly).
-processed_data_root: "/home/uwm/petersob/Data/petersob/ITE/ITE_dataProcessing_metagenomes/data/MGassembly_workshop"
+processed_data_root: "/tank/data/LS/petersob/petersob/ITE/ITE_dataProcessing_metagenomes/data/MGassembly_workshop"
 # Base directory where all final data will be stored
-final_data_root: "/home/uwm/petersob/Data/petersob/ITE/MGassembly_final"
+final_data_root: "/tank/data/LS/petersob/petersob/ITE/MGassembly_final"
 
 
 # Apptainer container names
-fastp_container: "/home/uwm/petersob/Data/containers/fastp.sif"
-spades_container: "/home/uwm/petersob/Data/containers/metaSPADes.sif"
+fastp_container: "/tank/data/LS/petersob/containers/fastp.sif"
+spades_container: "/tank/data/LS/petersob/containers/metaSPADes.sif"
 
 # Wrapper scripts. Relative to PLBS.
-plbs_location: "/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
+plbs_location: "/tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold"
 fastp_wrapper_script_name: "executables/filterReads_for_MGassembly_by_fastp.sh"
 spades_wrapper_script_name: "executables/MGassembly/assembleReads_by_metaspades.py"
 

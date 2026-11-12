@@ -38,27 +38,26 @@ echo "Snakemake version: $(snakemake --version)"
 # write to it. A relative processed_data_root is resolved against the workflow
 # directory, matching how Snakemake interprets it.
 #
-# The directory is bound at its *logical* path (as written in config.yaml,
-# symlinks preserved) because that is the path Snakemake substitutes into the
-# rule's shell command. /home/uwm/petersob/Data is a symlink to /tank/..., so
-# binding only the symlink-resolved path leaves /home/uwm/... missing inside
-# the container ("mkdir: cannot create directory '/home/uwm': Read-only file
-# system"). The physical path is bound too, in case a tool resolves symlinks.
-PLBS_DIR="/home/uwm/petersob/Data/Peterson_Lab_Bioinformatics_Scaffold"
+# Symlink handling: /home/uwm/petersob/Data is a symlink to
+# /tank/data/LS/petersob. Bind mounts cannot be placed *through* a
+# symlink (a destination like /home/uwm/petersob/Data/... either dangles or
+# fails silently), so all paths in config.yaml use the physical /tank/... path
+# and the workshop directory is bound there (pwd -P guards against a symlinked
+# path being reintroduced in config.yaml). The home directory is bound as well
+# so that, if any /home/uwm/petersob/Data/... path does sneak in, the symlink
+# exists inside the container and resolves onto the /tank bind. Snakemake sets
+# --home <workdir>, which disables Apptainer's home auto-bind, so this must be
+# requested explicitly.
+PLBS_DIR="/tank/data/LS/petersob/Peterson_Lab_Bioinformatics_Scaffold"
 PROCESSED_DATA_ROOT=$(sed -nE 's/^processed_data_root:[[:space:]]*"?([^"#]*[^"#[:space:]])"?.*$/\1/p' config.yaml)
 if [[ -z "$PROCESSED_DATA_ROOT" ]]; then
     echo "Error: could not read processed_data_root from config.yaml." >&2
     exit 1
 fi
 mkdir -p "$PROCESSED_DATA_ROOT"
-WORKSHOP_DIR=$(cd "$PROCESSED_DATA_ROOT" && pwd -L)
-WORKSHOP_DIR_PHYS=$(cd "$PROCESSED_DATA_ROOT" && pwd -P)
-echo "Processed data directory: $WORKSHOP_DIR"
-APPTAINER_BINDS="--bind ${PLBS_DIR}:/opt/plbs --bind ${WORKSHOP_DIR}:${WORKSHOP_DIR}:rw"
-if [[ "$WORKSHOP_DIR_PHYS" != "$WORKSHOP_DIR" ]]; then
-    echo "Processed data directory (physical): $WORKSHOP_DIR_PHYS"
-    APPTAINER_BINDS+=" --bind ${WORKSHOP_DIR_PHYS}:${WORKSHOP_DIR_PHYS}:rw"
-fi
+WORKSHOP_DIR=$(cd "$PROCESSED_DATA_ROOT" && pwd -P)
+echo "Processed data directory (physical path): $WORKSHOP_DIR"
+APPTAINER_BINDS="--bind ${PLBS_DIR}:/opt/plbs --bind ${WORKSHOP_DIR}:${WORKSHOP_DIR}:rw --bind ${HOME}:${HOME}"
 
 # Run Snakemake with your profile
 # The --profile slurm ensures that individual rules are submitted to Slurm
